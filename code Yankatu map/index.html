@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Yankatu Community Map</title>
+
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <!-- Google Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Unicase:wght@500&display=swap" rel="stylesheet" />
+
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Cormorant Unicase', serif;
+      background-color: #fff;
+    }
+
+    #map { height: 100vh; }
+
+    #sidebar {
+      position: fixed;
+      top: 0;
+      right: 0;
+      width: 320px;
+      height: 100%;
+      background-color: rgb(84, 30, 35);
+      color: white;
+      padding: 20px;
+      display: none;
+      overflow-y: auto;
+      z-index: 1000;
+    }
+
+    #sidebar.open { display: block; }
+
+    img, video {
+      max-width: 100%;
+      margin-bottom: 10px;
+      border-radius: 8px;
+    }
+
+    h2 {
+      color: rgb(241, 211, 184);
+      font-size: 24px;
+    }
+
+    a, strong {
+      color: rgb(183, 166, 149);
+    }
+
+    a:hover {
+      color: rgb(255, 230, 200);
+    }
+
+    p span {
+      color: rgb(241, 211, 184);
+    }
+
+    hr {
+      border-color: rgb(183, 166, 149);
+      margin: 15px 0;
+    }
+  </style>
+</head>
+<body>
+
+<div id="map"></div>
+<div id="sidebar">
+  <h2 id="name"></h2>
+  <p><strong>Community:</strong> <span id="community_name"></span></p>
+  <p><strong>Location:</strong> <span id="location"></span></p>
+  <p><strong>Latitude:</strong> <span id="latitude"></span></p>
+  <p><strong>Longitude:</strong> <span id="longitude"></span></p>
+  <p><strong>Way of Life:</strong> <span id="way_of_life"></span></p>
+  <p><strong>Traditions:</strong> <span id="traditions"></span></p>
+  <p><strong>Language:</strong> <span id="language"></span></p>
+  <img id="photos" src="" alt="Photos"/>
+  <video id="videos" controls><source src="" type="video/mp4"></video>
+  <hr/>
+  <p><strong>Speciality:</strong> <span id="speciality"></span></p>
+  <p><strong>Materials:</strong> <span id="materials"></span></p>
+  <img id="photos_materials" src="" alt="Materials Photos"/>
+  <video id="videos_materials" controls><source src="" type="video/mp4"></video>
+  <hr/>
+  <p><strong>Projects:</strong> <span id="collaborative_projects"></span></p>
+  <img id="photos_projects" src="" alt="Project Photo"/>
+  <video id="videos_projects" controls><source src="" type="video/mp4"></video>
+</div>
+
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script>
+  const map = L.map('map', { zoomControl: false }).setView([-15, -55], 4);
+  L.control.zoom({ position: 'topright' }).addTo(map);
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap contributors'
+  }).addTo(map);
+
+  const customIcon = L.divIcon({
+    className: '',
+    html: `<svg xmlns="http://www.w3.org/2000/svg" width="30" height="45" viewBox="0 0 24 24" fill="rgb(166, 91, 47)" stroke="white" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
+             <path d="M21 10c0 6-9 13-9 13S3 16 3 10a9 9 0 1 1 18 0z"/>
+             <circle cx="12" cy="10" r="3"/>
+           </svg>`,
+    iconSize: [30, 45],
+    iconAnchor: [15, 45]
+  });
+
+  const sheetURL = 'https://opensheet.elk.sh/1aGCZfljxDyOwNleyHF6oYu0DT2VehSgb5TkAKBI0oQs/Sheet1';
+
+  fetch(sheetURL)
+    .then(response => response.json())
+    .then(data => {
+      console.log("✅ Data loaded:", data);
+      data.forEach(entry => {
+        const lat = parseFloat(entry["Latitude"]);
+        const lng = parseFloat(entry["Longitude"]);
+        if (isNaN(lat) || isNaN(lng)) return;
+
+        const marker = L.marker([lat, lng], { icon: customIcon }).addTo(map);
+        marker.on('click', () => {
+          const nameText = entry["Name"] || '';
+          const website = (entry["Url"] || '').trim();
+          const nameElement = document.getElementById('name');
+
+          if (website && website.startsWith('http')) {
+            nameElement.innerHTML = `<a href="${website}" target="_blank" style="color: rgb(241, 211, 184); text-decoration: underline;">${nameText}</a>`;
+          } else {
+            nameElement.innerText = nameText;
+          }
+
+          document.getElementById('community_name').innerText = entry["Community Name"] || '';
+          document.getElementById('location').innerText = entry["Location"] || '';
+          document.getElementById('latitude').innerText = entry["Latitude"] || '';
+          document.getElementById('longitude').innerText = entry["Longitude"] || '';
+          document.getElementById('way_of_life').innerText = entry["Way of Life"] || '';
+          document.getElementById('traditions').innerText = entry["Traditions"] || '';
+          document.getElementById('language').innerText = entry["Language"] || '';
+          document.getElementById('photos').src = entry["Photos"] || '';
+          document.getElementById('videos').src = entry["Videos"] || '';
+          document.getElementById('speciality').innerText = entry["Speciality"] || '';
+          document.getElementById('materials').innerText = entry["Materials"] || '';
+          document.getElementById('photos_materials').src = entry["Photos Materials"] || '';
+          document.getElementById('videos_materials').src = entry["Videos Materials"] || '';
+          document.getElementById('collaborative_projects').innerText = entry["Collaborative Projects"] || '';
+          document.getElementById('photos_projects').src = entry["Photos Projects"] || '';
+          document.getElementById('videos_projects').src = entry["Videos Projects"] || '';
+          document.getElementById('sidebar').classList.add('open');
+        });
+      });
+    })
+    .catch(err => {
+      console.error("❌ Error loading data:", err);
+      alert("Er ging iets mis bij het ophalen van de data.");
+    });
+</script>
+
+</body>
+</html>
